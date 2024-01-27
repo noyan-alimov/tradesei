@@ -1,12 +1,14 @@
 use std::str::FromStr;
 
-use cosmwasm_std::{DepsMut, MessageInfo, Response, Decimal, WasmMsg, to_json_binary, BankMsg, coins, Uint128};
+use cosmwasm_std::{coins, to_json_binary, BankMsg, Decimal, DepsMut, Env, MessageInfo, QueryRequest, Response, Uint128, WasmMsg, WasmQuery};
+use cw721::OwnerOfResponse;
 
 use crate::{ContractError, state::{NftListing, NFT_LISTINGS, PLATFORM_FEE_RECEIVER}, utils::{query_check_royalties, query_royalty_info}};
 
 pub fn list(
     deps: DepsMut,
     info: MessageInfo,
+    env: Env,
     price: String,
     nft_contract_address: String,
     token_id: String,
@@ -29,6 +31,24 @@ pub fn list(
         &nft_listing
     )
         .map_err(|_e| ContractError::ErrorCreatingNewListing {  })?;
+
+    // verify that escrow has the NFT
+    let cw721_query_owner_msg = cw721::Cw721QueryMsg::OwnerOf {
+        token_id: nft_listing.token_id.clone(),
+        include_expired: Some(false),
+    };
+
+    let cw721_query = QueryRequest::Wasm(
+        WasmQuery::Smart {
+            contract_addr: nft_listing.nft_contract_address.to_string(),
+            msg: to_json_binary(&cw721_query_owner_msg)?
+        }
+    );
+
+    let cw721_query_response: OwnerOfResponse = deps.querier.query(&cw721_query)?;
+    if cw721_query_response.owner != env.contract.address.to_string() {
+        return Err(ContractError::NftNotInEscrow {  });
+    }
 
     Ok(
         Response::new()

@@ -1,5 +1,5 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{QueryRequest, StdResult, WasmQuery, to_json_binary, DepsMut, Uint128};
+use cosmwasm_std::{coins, to_json_binary, BankMsg, Decimal, DepsMut, QueryRequest, Response, StdResult, Uint128, WasmQuery};
 
 #[cw_serde]
 struct Extension<T> {
@@ -82,4 +82,17 @@ pub fn query_royalty_info(deps: &DepsMut, nft_contract_address: String, token_id
     });
 
     deps.querier.query(&wasm_query)
+}
+
+
+pub fn add_transfer_sei_to_seller_msg_with_price_after_platform_fee(
+    seller: String,
+    price_after_platform_fee: Decimal,
+    response: Response,
+) -> Response {
+    let transfer_sei_msg = BankMsg::Send {
+        to_address: seller,
+        amount: coins(price_after_platform_fee.atomics().u128(), "usei")
+    };
+    response.clone().add_message(transfer_sei_msg)
 }

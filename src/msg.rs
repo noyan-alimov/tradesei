@@ -7,7 +7,8 @@ pub struct InstantiateMsg {}
 
 #[cw_serde]
 pub enum ExecuteMsg {
-    // has to be executed with transferring nft to escrow in single transaction
+    // has to be executed with transferring nft to escrow in single transaction before this execution
+    // lister pays royalties and platform fee
     List {
         price: String,
         nft_contract_address: String,
@@ -15,11 +16,12 @@ pub enum ExecuteMsg {
     },
 
     Delist {
-        price: String,
+        new_price: String,
         nft_contract_address: String,
         token_id: String,
     },
 
+    // send more sei than displayed in nft_listing.price to this execution to cover royalties and platform fee
     BuyListing {
         nft_contract_address: String,
         token_id: String,
@@ -30,24 +32,50 @@ pub enum ExecuteMsg {
         token_id: String,
     },
 
+
+    // send sei in this execution via funds
+    // seller pays royalties and platform fee
     Bid {
         price: String,
         nft_contract_address: String,
         token_id: String,
     },
 
-    SellToBid {
+    UpdateBid {
+        new_price: String,
         nft_contract_address: String,
         token_id: String,
     },
 
+    CancelBid {
+        nft_contract_address: String,
+        token_id: String,
+    },
+
+    // has to be executed with transferring nft to escrow in single transaction before this execution
+    SellToBid {
+        nft_contract_address: String,
+        token_id: String,
+        bidder: String,
+    },
+
+
+    // send funds, total_amount = sum of prices
     CollectionBid {
-        price: String,
+        prices: Vec<String>,
         nft_contract_address: String,
     },
 
+    CancelAllCollectionBids {
+        nft_contract_address: String,
+    },
+
+    // has to be executed with transferring nft to escrow in single transaction before this execution
     SellToCollectionBid {
         nft_contract_address: String,
+        token_id: String,
+        bidder: String,
+        price: String,
     },
 }
 
@@ -67,11 +95,10 @@ pub enum QueryMsg {
         bidder: String,
     },
 
-    #[returns(GetNftCollectionBidsResponse)]
-    GetNftCollectionBids {
+    #[returns(GetNftCollectionBidResponse)]
+    GetNftCollectionBid {
         nft_contract_address: String,
-        skip: u16,
-        limit: u16,
+        bidder: String,
     }
 }
 
@@ -86,6 +113,6 @@ pub struct GetNftBidResponse {
 }
 
 #[cw_serde]
-pub struct GetNftCollectionBidsResponse {
-    pub nft_collection_bids: Vec<NftCollectionBid>,
+pub struct GetNftCollectionBidResponse {
+    pub nft_collection_bid: NftCollectionBid,
 }

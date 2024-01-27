@@ -33,9 +33,9 @@ pub const NFT_BIDS: Map<(&str, &str, &str), NftBid> = Map::new("nft_bids");
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct NftCollectionBid {
     pub bidder: Addr,
-    pub price: Decimal,
     pub nft_contract_address: Addr,
+    pub bids_prices: Vec<Decimal>,
 }
 
-// key: nft contract address
-pub const NFT_COLLECTION_BIDS: Map<String, Vec<NftCollectionBid>> = Map::new("nft_collection_bids");
+// key: (nft contract address, bidder)
+pub const NFT_COLLECTION_BIDS: Map<(&str, &str), NftCollectionBid> = Map::new("nft_collection_bids");
