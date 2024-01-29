@@ -9,6 +9,9 @@ pub enum ContractError {
     #[error("Unauthorized")]
     Unauthorized {},
 
+    #[error("Error parsing decimal to u128")]
+    ParseDecimal {},
+
     #[error("Invalid price")]
     InvalidPrice {},
 

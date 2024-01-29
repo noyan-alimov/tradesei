@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use cosmwasm_std::{coins, to_json_binary, BankMsg, Decimal, DepsMut, MessageInfo, Response, Uint128, WasmMsg};
 
-use crate::{state::{NftCollectionBid, NFT_COLLECTION_BIDS, PLATFORM_FEE_RECEIVER}, utils::{add_transfer_sei_to_seller_msg_with_price_after_platform_fee, query_check_royalties, query_royalty_info}, ContractError};
+use crate::{state::{NftCollectionBid, NFT_COLLECTION_BIDS, PLATFORM_FEE_RECEIVER}, utils::{add_transfer_sei_to_seller_msg_with_price_after_platform_fee, parse_decimal, query_check_royalties, query_royalty_info}, ContractError};
 
 
 pub fn collection_bid(
@@ -65,7 +65,8 @@ pub fn collection_bid(
         .find(|coin| coin.denom == "usei".to_string())
         .map_or(Uint128::zero(), |coin| coin.amount);
 
-    let total_amount = nft_collection_bid.bids_prices.iter().fold(Uint128::zero(), |acc, x| acc + x.atomics());
+    let total_amount = nft_collection_bid.bids_prices.iter().fold(Decimal::zero(), |acc, x| acc + x);
+    let total_amount = parse_decimal(total_amount)?;
 
     // Check if the sent amount is sufficient
     if sent_amount < total_amount {
@@ -135,7 +136,7 @@ pub fn sell_to_collection_bid(
     let platform_fee = price * Decimal::percent(2);
     let pay_platform_fee_msg = BankMsg::Send {
         to_address: PLATFORM_FEE_RECEIVER.to_string(),
-        amount: coins(platform_fee.atomics().u128(), "usei")
+        amount: coins(parse_decimal(platform_fee)?.u128(), "usei")
     };
 
     let price_after_platform_fee = price.checked_sub(platform_fee)
@@ -145,7 +146,7 @@ pub fn sell_to_collection_bid(
         .add_message(transfer_nft_msg)
         .add_message(pay_platform_fee_msg)
         .add_attribute("action", "sell_to_collection_bid")
-        .add_attribute("price", price.to_string())
+        .add_attribute("price", parse_decimal(price)?.to_string())
         .add_attribute("bidder", nft_collection_bid.bidder)
         .add_attribute("seller", info.sender.to_string())
         .add_attribute("nft_contract_address", nft_collection_bid.nft_contract_address.clone())
@@ -160,14 +161,14 @@ pub fn sell_to_collection_bid(
                     &deps,
                     nft_collection_bid.nft_contract_address.to_string(),
                     token_id.clone(),
-                    price.atomics(),
+                    parse_decimal(price)?,
                 )?;
                 if !royalty_info_response.address.is_empty() && royalty_info_response.royalty_amount > Uint128::zero() {
                     let pay_royalties_msg = BankMsg::Send {
                         to_address: royalty_info_response.address,
                         amount: coins(royalty_info_response.royalty_amount.u128(), "usei")
                     };
-                    let price_after_platform_fee_and_royalties = price_after_platform_fee.atomics().checked_sub(royalty_info_response.royalty_amount)
+                    let price_after_platform_fee_and_royalties = parse_decimal(price_after_platform_fee)?.checked_sub(royalty_info_response.royalty_amount)
                         .map_err(|e| ContractError::Std(cosmwasm_std::StdError::Overflow { source: e }))?;
                     let transfer_sei_msg = BankMsg::Send {
                         to_address: info.sender.to_string(),
@@ -175,15 +176,15 @@ pub fn sell_to_collection_bid(
                     };
                     response = response.add_message(pay_royalties_msg).add_message(transfer_sei_msg)
                 } else {
-                    response = add_transfer_sei_to_seller_msg_with_price_after_platform_fee(info.sender.to_string(), price_after_platform_fee, response);
+                    response = add_transfer_sei_to_seller_msg_with_price_after_platform_fee(info.sender.to_string(), parse_decimal(price_after_platform_fee)?.u128(), response);
                 }
             } else {
-                response = add_transfer_sei_to_seller_msg_with_price_after_platform_fee(info.sender.to_string(), price_after_platform_fee, response);
+                response = add_transfer_sei_to_seller_msg_with_price_after_platform_fee(info.sender.to_string(), parse_decimal(price_after_platform_fee)?.u128(), response);
             }
         },
         // if there is an error that means the nft contract does not support royalties
         Err(_e) => {
-            response = add_transfer_sei_to_seller_msg_with_price_after_platform_fee(info.sender.to_string(), price_after_platform_fee, response);
+            response = add_transfer_sei_to_seller_msg_with_price_after_platform_fee(info.sender.to_string(), parse_decimal(price_after_platform_fee)?.u128(), response);
         }
     }
     
@@ -205,7 +206,8 @@ pub fn cancel_all_collection_bids(
 
     NFT_COLLECTION_BIDS.remove(deps.storage, key);
 
-    let total_amount = nft_collection_bid.bids_prices.iter().fold(Uint128::zero(), |acc, x| acc + x.atomics());
+    let total_amount = nft_collection_bid.bids_prices.iter().fold(Decimal::zero(), |acc, x| acc + x);
+    let total_amount = parse_decimal(total_amount)?;
 
     // transfer sei from escrow back to bidder
     let transfer_sei_msg = BankMsg::Send {

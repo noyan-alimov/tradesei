@@ -1,6 +1,8 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{coins, to_json_binary, BankMsg, Decimal, DepsMut, QueryRequest, Response, StdResult, Uint128, WasmQuery};
 
+use crate::ContractError;
+
 #[cw_serde]
 struct Extension<T> {
     extension: T,
@@ -87,12 +89,23 @@ pub fn query_royalty_info(deps: &DepsMut, nft_contract_address: String, token_id
 
 pub fn add_transfer_sei_to_seller_msg_with_price_after_platform_fee(
     seller: String,
-    price_after_platform_fee: Decimal,
+    price_after_platform_fee: u128,
     response: Response,
 ) -> Response {
     let transfer_sei_msg = BankMsg::Send {
         to_address: seller,
-        amount: coins(price_after_platform_fee.atomics().u128(), "usei")
+        amount: coins(price_after_platform_fee, "usei")
     };
     response.clone().add_message(transfer_sei_msg)
+}
+
+// need to remove extra zeros because
+// 1 sei = 1_000_000 usei
+// 1 sei = 1_000_000_000_000_000_000 atomics in Decimal
+// so removing extra 1_000_000_000_000
+pub fn parse_decimal(decimal: Decimal) -> Result<Uint128, ContractError> {
+    decimal
+        .atomics()
+        .checked_div(Uint128::new(1_000_000_000_000))
+        .map_err(|_e| ContractError::ParseDecimal {  })
 }

@@ -5,6 +5,7 @@ use cosmwasm_std::{Addr, Decimal};
 use cw_storage_plus::Map;
 
 pub const PLATFORM_FEE_RECEIVER: &str = "sei1904lsj3d3rtm903dqt4ljxx0dpugtmngf4tgal";
+// pub const PLATFORM_FEE_RECEIVER: &str = "sei1rvkr2g6jghaxgwu3zl9ha0gf30lkxlvvgnev0u";
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
 pub struct NftListing {

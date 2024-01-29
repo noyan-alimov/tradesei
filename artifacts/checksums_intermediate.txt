@@ -1,1 +1,1 @@
-64bb17f01baed7764fbc758ac5a156d19dc8f0f0e7785f8dac4ed42d6aacf870  /target/wasm32-unknown-unknown/release/tradesei.wasm
+04023ac98b14a60fd110a3ffe3fa54bb812b6f82ab311dab28ea97ca08fcfd36  /target/wasm32-unknown-unknown/release/tradesei.wasm

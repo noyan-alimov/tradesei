@@ -3,7 +3,7 @@ use std::str::FromStr;
 use cosmwasm_std::{coins, to_json_binary, BankMsg, Decimal, DepsMut, Env, MessageInfo, QueryRequest, Response, Uint128, WasmMsg, WasmQuery};
 use cw721::OwnerOfResponse;
 
-use crate::{ContractError, state::{NftListing, NFT_LISTINGS, PLATFORM_FEE_RECEIVER}, utils::{query_check_royalties, query_royalty_info}};
+use crate::{ContractError, state::{NftListing, NFT_LISTINGS, PLATFORM_FEE_RECEIVER}, utils::{parse_decimal, query_check_royalties, query_royalty_info}};
 
 pub fn list(
     deps: DepsMut,
@@ -53,7 +53,7 @@ pub fn list(
     Ok(
         Response::new()
             .add_attribute("action", "list")
-            .add_attribute("price", nft_listing.price.to_string())
+            .add_attribute("price", parse_decimal(nft_listing.price)?.to_string())
             .add_attribute("lister", nft_listing.lister)
             .add_attribute("nft_contract_address", nft_listing.nft_contract_address)
             .add_attribute("token_id", nft_listing.token_id)
@@ -90,14 +90,14 @@ pub fn buy_listing(
     // transfer sei to lister
     let transfer_sei_msg = BankMsg::Send {
         to_address: nft_listing.lister.to_string(),
-        amount: coins(nft_listing.price.atomics().u128(), "usei")
+        amount: coins(parse_decimal(nft_listing.price)?.u128(), "usei")
     };
 
     // pay platform fee
     let platform_fee = nft_listing.price * Decimal::percent(2);
     let pay_platform_fee_msg = BankMsg::Send {
         to_address: PLATFORM_FEE_RECEIVER.to_string(),
-        amount: coins(platform_fee.atomics().u128(), "usei")
+        amount: coins(parse_decimal(platform_fee)?.u128(), "usei")
     };
 
     let mut response = Response::new()
@@ -105,7 +105,7 @@ pub fn buy_listing(
         .add_message(transfer_sei_msg)
         .add_message(pay_platform_fee_msg)
         .add_attribute("action", "buy_listing")
-        .add_attribute("price", nft_listing.price.to_string())
+        .add_attribute("price", parse_decimal(nft_listing.price)?.to_string())
         .add_attribute("lister", nft_listing.lister)
         .add_attribute("buyer", info.sender.to_string())
         .add_attribute("nft_contract_address", nft_listing.nft_contract_address.clone())
@@ -120,7 +120,7 @@ pub fn buy_listing(
                     &deps,
                     nft_listing.nft_contract_address.to_string(),
                     nft_listing.token_id.clone(),
-                    nft_listing.price.atomics(),
+                    parse_decimal(nft_listing.price)?,
                 )?;
                 if !royalty_info_response.address.is_empty() && royalty_info_response.royalty_amount > Uint128::zero() {
                     let pay_royalties_msg = BankMsg::Send {
@@ -172,7 +172,7 @@ pub fn cancel_listing(
     let response = Response::new()
         .add_message(transfer_nft_msg)
         .add_attribute("action", "cancel_listing")
-        .add_attribute("price", nft_listing.price.to_string())
+        .add_attribute("price", parse_decimal(nft_listing.price)?.to_string())
         .add_attribute("lister", nft_listing.lister)
         .add_attribute("nft_contract_address", nft_listing.nft_contract_address.clone())
         .add_attribute("token_id", nft_listing.token_id.clone());
@@ -213,7 +213,7 @@ pub fn delist(
 
     let response = Response::new()
         .add_attribute("action", "delist")
-        .add_attribute("new_price", nft_listing.price.to_string())
+        .add_attribute("new_price", parse_decimal(nft_listing.price)?.to_string())
         .add_attribute("lister", nft_listing.lister)
         .add_attribute("nft_contract_address", nft_listing.nft_contract_address.clone())
         .add_attribute("token_id", nft_listing.token_id.clone());

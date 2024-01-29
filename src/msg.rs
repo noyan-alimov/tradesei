@@ -6,6 +6,9 @@ use crate::state::{NftListing, NftBid, NftCollectionBid};
 pub struct InstantiateMsg {}
 
 #[cw_serde]
+pub struct MigrateMsg {}
+
+#[cw_serde]
 pub enum ExecuteMsg {
     // has to be executed with transferring nft to escrow in single transaction before this execution
     // lister pays royalties and platform fee
