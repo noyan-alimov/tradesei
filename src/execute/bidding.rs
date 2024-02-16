@@ -24,9 +24,16 @@ pub fn bid(
         token_id
     };
 
+    let key = (nft_bid.nft_contract_address.as_str(), nft_bid.token_id.as_str(), nft_bid.bidder.as_str());
+
+    let is_bid_exists = NFT_BIDS.has(deps.storage, key);
+    if is_bid_exists {
+        return Err(ContractError::BidAlreadyExists {  });
+    }
+
     NFT_BIDS.save(
         deps.storage,
-        (&nft_bid.nft_contract_address.to_string(), &nft_bid.token_id, &nft_bid.bidder.to_string()),
+        key,
         &nft_bid
     )
         .map_err(|_e| ContractError::ErrorCreatingNewBid {  })?;
@@ -154,7 +161,7 @@ pub fn cancel_bid(
     let key = (nft_contract_address.as_str(), token_id.as_str(), info.sender.as_str());
 
     let nft_bid = NFT_BIDS.load(deps.storage, key)
-        .map_err(|_e| ContractError::NftListingNotFound {  })?;
+        .map_err(|_e| ContractError::NftBidNotFound {  })?;
 
     NFT_BIDS.remove(deps.storage, key);
 

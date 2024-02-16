@@ -25,9 +25,16 @@ pub fn list(
         token_id
     };
 
+    let key = (nft_listing.nft_contract_address.as_str(), nft_listing.token_id.as_str());
+
+    let is_listing_exists = NFT_LISTINGS.has(deps.storage, key);
+    if is_listing_exists {
+        return Err(ContractError::ListingAlreadyExists {  });
+    }
+
     NFT_LISTINGS.save(
         deps.storage,
-        (&nft_listing.nft_contract_address.to_string(), &nft_listing.token_id),
+        key,
         &nft_listing
     )
         .map_err(|_e| ContractError::ErrorCreatingNewListing {  })?;

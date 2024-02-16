@@ -56,4 +56,10 @@ pub enum ContractError {
 
     #[error("Error updating new collection bid")]
     ErrorUpdatingNewCollectionBid {},
+
+    #[error("Listing already exists")]
+    ListingAlreadyExists {},
+
+    #[error("Bid already exists")]
+    BidAlreadyExists {},
 }
