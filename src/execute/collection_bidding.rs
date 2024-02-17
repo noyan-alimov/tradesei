@@ -57,7 +57,7 @@ pub fn collection_bid(
             let nft_collection_bid = NftCollectionBid {
                 bidder: info.sender.clone(),
                 nft_contract_address: nft_contract_address.clone(),
-                bids_prices: prices,
+                bids_prices: prices.clone(),
             };
 
             NFT_COLLECTION_BIDS.save(
@@ -69,12 +69,18 @@ pub fn collection_bid(
         }
     };
 
+    let prices_separated_by_comma = prices
+        .iter()
+        .map(|price| parse_decimal(*price).unwrap().to_string())
+        .collect::<Vec<String>>().join(",");
+
     Ok(
         Response::new()
             .add_attribute("action", "collection_bid")
             .add_attribute("total_amount", total_amount.to_string())
             .add_attribute("bidder", info.sender)
             .add_attribute("nft_contract_address", nft_contract_address)
+            .add_attribute("prices", prices_separated_by_comma)
     )
 }
 
@@ -255,10 +261,12 @@ pub fn cancel_collection_bid(
             .map_err(|_e| ContractError::ErrorUpdatingCollectionBid {  })?;
     }
 
+    let price = parse_decimal(price)?;
+
     // transfer sei from escrow back to bidder
     let transfer_sei_msg = BankMsg::Send {
         to_address: nft_collection_bid.bidder.to_string(),
-        amount: coins(parse_decimal(price)?.u128(), "usei")
+        amount: coins(price.u128(), "usei")
     };
 
     Ok(
