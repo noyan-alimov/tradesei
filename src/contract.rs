@@ -54,6 +54,7 @@ pub fn execute(
         ExecuteMsg::SellToBid { nft_contract_address, token_id, bidder } => bidding::sell_to_bid(deps, info, nft_contract_address, token_id, bidder),
         ExecuteMsg::CollectionBid { prices, nft_contract_address } => collection_bidding::collection_bid(deps, info, prices, nft_contract_address),
         ExecuteMsg::CancelAllCollectionBids { nft_contract_address } => collection_bidding::cancel_all_collection_bids(deps, info, nft_contract_address),
+        ExecuteMsg::CancelCollectionBid { nft_contract_address, price } => collection_bidding::cancel_collection_bid(deps, info, nft_contract_address, price),
         ExecuteMsg::SellToCollectionBid { nft_contract_address, token_id, bidder, price } => collection_bidding::sell_to_collection_bid(deps, info, nft_contract_address, token_id, bidder, price),
     }
 }

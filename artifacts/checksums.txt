@@ -1,1 +1,1 @@
-7a9a1cb4d6333e711a3b1e52ef7470c214fc0bed7cadfce009a9ffa4fd0f9c1b  tradesei.wasm
+b35380ac8de30e709e983360dfeffa49b86cb6bec9554be60b7484430da18810  tradesei.wasm

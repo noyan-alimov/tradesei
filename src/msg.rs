@@ -73,6 +73,11 @@ pub enum ExecuteMsg {
         nft_contract_address: String,
     },
 
+    CancelCollectionBid {
+        nft_contract_address: String,
+        price: String,
+    },
+
     // has to be executed with transferring nft to escrow in single transaction before this execution
     SellToCollectionBid {
         nft_contract_address: String,
