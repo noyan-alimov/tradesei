@@ -54,8 +54,11 @@ pub enum ContractError {
     #[error("NFT collection bid not found")]
     NftCollectionBidNotFound {},
 
-    #[error("Error updating new collection bid")]
-    ErrorUpdatingNewCollectionBid {},
+    #[error("NFT collection bid price not found")]
+    NftCollectionBidPriceNotFound {},
+
+    #[error("Error updating collection bid")]
+    ErrorUpdatingCollectionBid {},
 
     #[error("Listing already exists")]
     ListingAlreadyExists {},

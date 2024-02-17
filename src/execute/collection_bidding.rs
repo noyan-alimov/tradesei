@@ -20,11 +20,25 @@ pub fn collection_bid(
     let nft_contract_address = deps.api.addr_validate(nft_contract_address.as_str())
         .map_err(|_e| ContractError::InvalidNftContractAddress {  })?;
 
+    let sent_amount = info
+        .funds
+        .iter()
+        .find(|coin| coin.denom == "usei".to_string())
+        .map_or(Uint128::zero(), |coin| coin.amount);
+
+    let total_amount = prices.iter().fold(Decimal::zero(), |acc, x| acc + x);
+    let total_amount = parse_decimal(total_amount)?;
+
+    // Check if the sent amount is sufficient
+    if sent_amount < total_amount {
+        return Err(ContractError::InsufficientFundsSent {  });
+    }
+
     let nft_contract_address_clone = nft_contract_address.clone();
     let sender_clone = info.sender.clone();
     let key = (nft_contract_address_clone.as_str(), sender_clone.as_str());
     let nft_collection_bid = NFT_COLLECTION_BIDS.may_load(deps.storage, key)?;
-    let nft_collection_bid = match nft_collection_bid {
+    match nft_collection_bid {
         Some(mut nft_collection_bid) => {
             for price in prices.iter() {
                 nft_collection_bid.bids_prices.push(price.clone());
@@ -38,8 +52,6 @@ pub fn collection_bid(
                 &nft_collection_bid
             )
                 .map_err(|_e| ContractError::ErrorCreatingNewCollectionBid {  })?;
-
-            nft_collection_bid
         },
         None => {
             let nft_collection_bid = NftCollectionBid {
@@ -54,24 +66,8 @@ pub fn collection_bid(
                 &nft_collection_bid
             )
                 .map_err(|_e| ContractError::ErrorCreatingNewCollectionBid {  })?;
-
-            nft_collection_bid
         }
     };
-    
-    let sent_amount = info
-        .funds
-        .iter()
-        .find(|coin| coin.denom == "usei".to_string())
-        .map_or(Uint128::zero(), |coin| coin.amount);
-
-    let total_amount = nft_collection_bid.bids_prices.iter().fold(Decimal::zero(), |acc, x| acc + x);
-    let total_amount = parse_decimal(total_amount)?;
-
-    // Check if the sent amount is sufficient
-    if sent_amount < total_amount {
-        return Err(ContractError::InsufficientFundsSent {  });
-    }
 
     Ok(
         Response::new()
@@ -107,7 +103,7 @@ pub fn sell_to_collection_bid(
     if let Some(index) = nft_collection_bid.bids_prices.iter().position(|&x| x == price) {
         nft_collection_bid.bids_prices.remove(index);
     } else {
-        return Err(ContractError::NftCollectionBidNotFound {  });
+        return Err(ContractError::NftCollectionBidPriceNotFound {  });
     }
 
     if nft_collection_bid.bids_prices.len() == 0 {
@@ -118,7 +114,7 @@ pub fn sell_to_collection_bid(
             key,
             &nft_collection_bid
         )
-            .map_err(|_e| ContractError::ErrorUpdatingNewCollectionBid {  })?;
+            .map_err(|_e| ContractError::ErrorUpdatingCollectionBid {  })?;
     }
     
     // transfer nft from escrow to bidder
@@ -202,7 +198,7 @@ pub fn cancel_all_collection_bids(
     let key = (nft_contract_address.as_str(), info.sender.as_str());
 
     let nft_collection_bid = NFT_COLLECTION_BIDS.load(deps.storage, key)
-        .map_err(|_e| ContractError::NftListingNotFound {  })?;
+        .map_err(|_e| ContractError::NftCollectionBidNotFound {  })?;
 
     NFT_COLLECTION_BIDS.remove(deps.storage, key);
 
@@ -222,5 +218,55 @@ pub fn cancel_all_collection_bids(
             .add_attribute("bidder", nft_collection_bid.bidder)
             .add_attribute("nft_contract_address", nft_collection_bid.nft_contract_address.clone())
             .add_attribute("total_amount", total_amount.to_string())
+    )
+}
+
+pub fn cancel_collection_bid(
+    deps: DepsMut,
+    info: MessageInfo,
+    nft_contract_address: String,
+    price: String,
+) -> Result<Response, ContractError> {
+    let price = Decimal::from_str(price.as_str())
+        .map_err(|_e| ContractError::InvalidPrice {  })?;
+
+    let nft_contract_address = deps.api.addr_validate(nft_contract_address.as_str())
+        .map_err(|_e| ContractError::InvalidNftContractAddress {  })?;
+
+    let key = (nft_contract_address.as_str(), info.sender.as_str());
+
+    let mut nft_collection_bid = NFT_COLLECTION_BIDS.load(deps.storage, key)
+        .map_err(|_e| ContractError::NftCollectionBidNotFound {  })?;
+
+    if let Some(index) = nft_collection_bid.bids_prices.iter().position(|&x| x == price) {
+        nft_collection_bid.bids_prices.remove(index);
+    } else {
+        return Err(ContractError::NftCollectionBidPriceNotFound {  });
+    }
+
+    if nft_collection_bid.bids_prices.len() == 0 {
+        NFT_COLLECTION_BIDS.remove(deps.storage, key);
+    } else {
+        NFT_COLLECTION_BIDS.save(
+            deps.storage,
+            key,
+            &nft_collection_bid
+        )
+            .map_err(|_e| ContractError::ErrorUpdatingCollectionBid {  })?;
+    }
+
+    // transfer sei from escrow back to bidder
+    let transfer_sei_msg = BankMsg::Send {
+        to_address: nft_collection_bid.bidder.to_string(),
+        amount: coins(parse_decimal(price)?.u128(), "usei")
+    };
+
+    Ok(
+        Response::new()
+            .add_message(transfer_sei_msg)
+            .add_attribute("action", "cancel_collection_bid")
+            .add_attribute("bidder", nft_collection_bid.bidder)
+            .add_attribute("nft_contract_address", nft_collection_bid.nft_contract_address.clone())
+            .add_attribute("price", price.to_string())
     )
 }
