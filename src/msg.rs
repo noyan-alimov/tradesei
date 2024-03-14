@@ -107,7 +107,29 @@ pub enum QueryMsg {
     GetNftCollectionBid {
         nft_contract_address: String,
         bidder: String,
-    }
+    },
+
+    #[returns(GetPaginatedListingsResponse)]
+    GetPaginatedListings {
+        nft_contract_address: String,
+        start_after: Option<String>,
+        limit: Option<u32>,
+    },
+
+    #[returns(GetPaginatedBidsResponse)]
+    GetPaginatedBids {
+        nft_contract_address: String,
+        token_id: String,
+        start_after: Option<String>,
+        limit: Option<u32>,
+    },
+
+    #[returns(GetPaginatedCollectionBidsResponse)]
+    GetPaginatedCollectionBids {
+        nft_contract_address: String,
+        start_after: Option<String>,
+        limit: Option<u32>,
+    },
 }
 
 #[cw_serde]
@@ -123,4 +145,19 @@ pub struct GetNftBidResponse {
 #[cw_serde]
 pub struct GetNftCollectionBidResponse {
     pub nft_collection_bid: NftCollectionBid,
+}
+
+#[cw_serde]
+pub struct GetPaginatedListingsResponse {
+    pub listings: Vec<(String, NftListing)>,
+}
+
+#[cw_serde]
+pub struct GetPaginatedBidsResponse {
+    pub bids: Vec<(String, NftBid)>,
+}
+
+#[cw_serde]
+pub struct GetPaginatedCollectionBidsResponse {
+    pub collection_bids: Vec<(String, NftCollectionBid)>,
 }

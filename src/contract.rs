@@ -65,5 +65,8 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::GetNftListing { nft_contract_address, token_id } => to_json_binary(&query::get_nft_listing(deps, nft_contract_address, token_id)?),
         QueryMsg::GetNftBid { nft_contract_address, token_id, bidder } => to_json_binary(&query::get_nft_bid(deps, nft_contract_address, token_id, bidder)?),
         QueryMsg::GetNftCollectionBid { nft_contract_address, bidder } => to_json_binary(&query::get_nft_collection_bid(deps, nft_contract_address, bidder)?),
+        QueryMsg::GetPaginatedListings { nft_contract_address, start_after, limit } => to_json_binary(&query::query_paginated_listings(deps, nft_contract_address, start_after.as_deref(), limit)?),
+        QueryMsg::GetPaginatedBids { nft_contract_address, token_id, start_after, limit } => to_json_binary(&query::query_paginated_bids(deps, nft_contract_address, token_id, start_after.as_deref(), limit)?),
+        QueryMsg::GetPaginatedCollectionBids { nft_contract_address, start_after, limit } => to_json_binary(&query::query_paginated_collection_bids(deps, nft_contract_address, start_after.as_deref(), limit)?),
     }
 }
